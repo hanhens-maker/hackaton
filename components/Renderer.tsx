@@ -11,6 +11,10 @@ import Housing from "./modules/Housing";
 import Crisis from "./modules/Crisis";
 import Advisor from "./modules/Advisor";
 import InfoCard from "./modules/InfoCard";
+import TravelPlanner from "./modules/TravelPlanner";
+import Budget from "./modules/Budget";
+import InsuranceCheck from "./modules/InsuranceCheck";
+import Timeline from "./modules/Timeline";
 
 function renderModule(m: Module) {
   switch (m.type) {
@@ -30,6 +34,14 @@ function renderModule(m: Module) {
       return <Advisor {...m} />;
     case "InfoCard":
       return <InfoCard {...m} />;
+    case "TravelPlanner":
+      return <TravelPlanner {...m} />;
+    case "Budget":
+      return <Budget {...m} />;
+    case "InsuranceCheck":
+      return <InsuranceCheck {...m} />;
+    case "Timeline":
+      return <Timeline {...m} />;
   }
 }
 

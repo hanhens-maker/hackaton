@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { applyCrisisRules } from "@/lib/schema";
+import { applyCrisisRules, ComposeResponseSchema, MAX_HISTORY, type ChatMessage, type ComposeResponse, type Signal } from "@/lib/schema";
 import { lifeMomentLabel } from "@/lib/labels";
-import { DEFAULT_SEED_USER_ID, seedUsers } from "@/data/seed-users";
+import { quickReplies } from "@/lib/chips";
+import { DEFAULT_SEED_USER_ID, seedUsers, type SeedUser } from "@/data/seed-users";
 import { seedWhy } from "@/data/seed-why";
+import Copilot from "./Copilot";
 import PhoneFrame from "./PhoneFrame";
+import Signals, { type LiveSignal } from "./Signals";
 import WhyPanel from "./WhyPanel";
 
 const personaEmoji: Record<string, string> = {
@@ -20,7 +23,54 @@ const personaEmoji: Record<string, string> = {
 export default function Demo() {
   const [userId, setUserId] = useState(DEFAULT_SEED_USER_ID);
   const user = seedUsers.find((u) => u.id === userId) ?? seedUsers[0];
-  const compose = applyCrisisRules(user.compose);
+  const seedCompose = applyCrisisRules(user.compose);
+
+  // Live copilot state. Reset to the seed layout + opening message when switching customer.
+  const [compose, setCompose] = useState<ComposeResponse>(seedCompose);
+  const [history, setHistory] = useState<ChatMessage[]>(() => opening(user));
+  const [pending, setPending] = useState(false);
+  const [liveSignals, setLiveSignals] = useState<LiveSignal[]>([]);
+  const requestId = useRef(0);
+
+  function selectUser(next: SeedUser) {
+    requestId.current++; // drop any in-flight response for the previous customer
+    setUserId(next.id);
+    setCompose(applyCrisisRules(next.compose));
+    setHistory(opening(next));
+    setLiveSignals([]);
+    setPending(false);
+  }
+
+  async function send(message: string) {
+    const id = ++requestId.current;
+    const priorHistory = history.slice(-MAX_HISTORY);
+    setHistory((h) => [...h, { role: "user", content: message }]);
+    setPending(true);
+
+    let next: ComposeResponse;
+    try {
+      const res = await fetch("/api/compose", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId: user.id, lifeMoment: compose.lifeMoment, tone: compose.tone, layout: compose.layout, history: priorHistory, signals: liveSignals.map(({ type, label }) => ({ type, label })).slice(0, 12), message }),
+      });
+      const body = await res.json().catch(() => null);
+      const parsed = ComposeResponseSchema.safeParse(body);
+      next = parsed.success
+        ? parsed.data
+        : { ...compose, reply: body?.error ?? "Sorry, dat lukte even niet. Kan je het nog eens proberen?" };
+    } catch {
+      next = { ...compose, reply: "Sorry, ik ben even niet bereikbaar. Probeer het zo nog eens." };
+    }
+
+    if (id !== requestId.current) return;
+    setCompose(next);
+    setHistory((h) => [...h, { role: "assistant", content: next.reply }]);
+    if (next.signals?.length) setLiveSignals((prev) => addSignals(prev, next.signals!, user, id));
+    setPending(false);
+  }
+
+  const lastUserMessage = [...history].reverse().find((m) => m.role === "user")?.content;
 
   return (
     <main className="grid h-full min-h-screen grid-cols-[300px_1fr_400px] gap-6 p-6">
@@ -41,7 +91,7 @@ export default function Demo() {
             return (
               <button
                 key={u.id}
-                onClick={() => setUserId(u.id)}
+                onClick={() => selectUser(u)}
                 className={`relative flex items-center gap-3 rounded-2xl p-3 text-left transition-colors ${active ? "text-white" : "hover:bg-slate-50"}`}
               >
                 {active && (
@@ -65,7 +115,7 @@ export default function Demo() {
           })}
         </div>
 
-        {/* Placeholder for free-text persona input (next step: Gemini). */}
+        {/* Placeholder for free-text persona input (later). */}
         <div className="mt-auto rounded-2xl border-2 border-dashed border-slate-200 p-4">
           <p className="text-sm font-semibold text-slate-500">Eigen klant beschrijven</p>
           <p className="mt-1 text-xs text-slate-400">Binnenkort: typ een situatie en de app bouwt zich live op.</p>
@@ -74,11 +124,42 @@ export default function Demo() {
 
       {/* Center: phone */}
       <section className="flex items-center justify-center">
-        <PhoneFrame userKey={user.id} name={user.name} compose={compose} />
+        <PhoneFrame
+          userKey={user.id}
+          name={user.name}
+          compose={compose}
+          copilot={
+            <Copilot
+              reply={compose.reply}
+              lastUserMessage={lastUserMessage}
+              chips={quickReplies[compose.lifeMoment]}
+              pending={pending}
+              onSend={send}
+            />
+          }
+        />
       </section>
 
-      {/* Right: why panel */}
-      <WhyPanel userKey={user.id} compose={compose} why={seedWhy[user.id]} />
+      {/* Right: why panel. Explains the seed starting point; seedWhy is index-aligned with the seed layout. */}
+      <WhyPanel
+        userKey={user.id}
+        compose={seedCompose}
+        why={seedWhy[user.id]}
+        signals={<Signals seed={user.signals} live={liveSignals} />}
+      />
     </main>
   );
+}
+
+function opening(user: SeedUser): ChatMessage[] {
+  return [{ role: "assistant", content: user.compose.reply }];
+}
+
+/** Newest first, skipping labels we already show. */
+function addSignals(prev: LiveSignal[], incoming: Signal[], user: SeedUser, requestId: number): LiveSignal[] {
+  const known = new Set([...user.signals, ...prev].map((s) => s.label.toLowerCase()));
+  const fresh = incoming
+    .filter((s) => !known.has(s.label.toLowerCase()))
+    .map((s, i) => ({ ...s, id: `${requestId}-${i}` }));
+  return [...fresh, ...prev];
 }

@@ -29,6 +29,8 @@ export const ToneSchema = z.enum(["speels", "neutraal", "rustig"]);
 
 export const InfoVariantSchema = z.enum(["pension", "selfEmployed", "study", "investing"]);
 
+export const InsuranceStatusSchema = z.enum(["have", "missing", "review"]);
+
 export const HousingStatusSchema = z.enum(["owner", "mortgage", "rent", "living_with_family"]);
 
 // ---------- Modules ----------
@@ -128,6 +130,75 @@ export const InfoCardSchema = z.object({
   cta: shortText.optional(),
 });
 
+const whenText = z.string().trim().min(1).max(40); // free text, e.g. "april 2027", "over 2 maanden"
+
+// Carries a product/spending offer → stripped in crisis mode.
+export const TravelPlannerSchema = z.object({
+  type: z.literal("TravelPlanner"),
+  title: shortText,
+  destination: shortText,
+  departure: whenText,
+  items: z
+    .array(
+      z.object({
+        label: shortText, // e.g. "Vlucht", "Verblijf", "Zakgeld"
+        amount: amount,
+      }),
+    )
+    .min(1)
+    .max(4),
+  saved: amount,
+  monthlySaving: amount,
+  tip: mediumText.optional(),
+});
+
+export const BudgetSchema = z.object({
+  type: z.literal("Budget"),
+  title: shortText,
+  categories: z
+    .array(
+      z.object({
+        label: shortText,
+        planned: amount,
+        spent: amount,
+      }),
+    )
+    .min(1)
+    .max(6),
+  leftThisMonth: signedAmount,
+});
+
+// cta is stripped in crisis mode; the check itself stays.
+export const InsuranceCheckSchema = z.object({
+  type: z.literal("InsuranceCheck"),
+  title: shortText,
+  items: z
+    .array(
+      z.object({
+        name: shortText,
+        status: InsuranceStatusSchema,
+        reason: mediumText,
+      }),
+    )
+    .min(1)
+    .max(6),
+  cta: shortText.optional(),
+});
+
+export const TimelineSchema = z.object({
+  type: z.literal("Timeline"),
+  title: shortText,
+  events: z
+    .array(
+      z.object({
+        label: shortText,
+        when: whenText,
+      }),
+    )
+    .min(2)
+    .max(5),
+});
+
 export const ModuleSchema = z.discriminatedUnion("type", [
   BalanceSchema,
   GoalsSchema,
@@ -137,7 +208,21 @@ export const ModuleSchema = z.discriminatedUnion("type", [
   CrisisSchema,
   AdvisorSchema,
   InfoCardSchema,
+  TravelPlannerSchema,
+  BudgetSchema,
+  InsuranceCheckSchema,
+  TimelineSchema,
 ]);
+
+// ---------- Signals ("Wat KBC opmerkte") ----------
+
+export const SignalTypeSchema = z.enum(["situatie", "gedrag", "intentie"]);
+export const MAX_NEW_SIGNALS = 3;
+
+export const SignalSchema = z.object({
+  type: SignalTypeSchema,
+  label: z.string().trim().min(1).max(70),
+});
 
 // ---------- Compose ----------
 
@@ -148,11 +233,34 @@ export const ComposeResponseSchema = z.object({
   tone: ToneSchema,
   layout: LayoutSchema,
   reply: longText,
+  /** New signals detected in the latest message. Absent for seeds and fallbacks. */
+  signals: z.array(SignalSchema).max(MAX_NEW_SIGNALS).optional(),
 });
 
+export const MAX_MESSAGE_LENGTH = 500;
+export const MAX_HISTORY = 6;
+
+export const ChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+});
+
+/** Client → /api/compose. Everything here is untrusted and re-validated server-side. */
 export const ComposeRequestSchema = z.object({
-  userId: z.string().trim().max(64).optional(),
-  message: z.string().trim().min(1).max(1000),
+  userId: z.string().trim().max(64),
+  lifeMoment: LifeMomentSchema,
+  tone: ToneSchema,
+  layout: LayoutSchema,
+  history: z.array(ChatMessageSchema).max(MAX_HISTORY),
+  /** Signals already detected in this chat, so the model doesn't repeat them. */
+  signals: z.array(SignalSchema).max(12),
+  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+});
+
+/** What the model returns. `layout: null` = keep the current layout (question without a new life moment). */
+export const LlmResponseSchema = ComposeResponseSchema.extend({
+  layout: LayoutSchema.nullable(),
+  signals: z.array(SignalSchema).max(MAX_NEW_SIGNALS).nullable(),
 });
 
 // ---------- Crisis rules (enforced in code, not by prompt) ----------
@@ -165,7 +273,7 @@ export function isCrisis(lifeMoment: LifeMoment): boolean {
 
 /** Modules that carry product offers. Never shown in a crisis. */
 export function isProductModule(m: Module): boolean {
-  return m.type === "Housing" || (m.type === "InfoCard" && m.variant === "investing");
+  return m.type === "Housing" || m.type === "TravelPlanner" || (m.type === "InfoCard" && m.variant === "investing");
 }
 
 /** Used when the model forgets the Crisis block in a crisis moment. */
@@ -178,22 +286,32 @@ export const DEFAULT_CRISIS_MODULE: CrisisModule = {
 };
 
 /**
- * In a crisis moment: drop product modules, keep one Crisis block and put it first.
- * No-op otherwise.
+ * In a crisis moment: tone becomes rustig, product modules are dropped, CTAs are removed
+ * from modules that stay (InsuranceCheck), and exactly one Crisis block is put first. No-op otherwise.
  */
 export function applyCrisisRules(res: ComposeResponse): ComposeResponse {
   if (!isCrisis(res.lifeMoment)) return res;
   const crisis = res.layout.find((m): m is CrisisModule => m.type === "Crisis") ?? DEFAULT_CRISIS_MODULE;
-  const rest = res.layout.filter((m) => m.type !== "Crisis" && !isProductModule(m));
-  return { ...res, layout: [crisis, ...rest].slice(0, MAX_MODULES) };
+  const rest = res.layout
+    .filter((m) => m.type !== "Crisis" && !isProductModule(m))
+    .map((m) => (m.type === "InsuranceCheck" ? withoutCta(m) : m));
+  return { ...res, tone: "rustig", layout: [crisis, ...rest].slice(0, MAX_MODULES) };
+}
+
+function withoutCta(m: InsuranceCheckModule): InsuranceCheckModule {
+  const { cta: _cta, ...rest } = m; // eslint-disable-line @typescript-eslint/no-unused-vars
+  return rest;
 }
 
 // ---------- Types ----------
 
 export type LifeMoment = z.infer<typeof LifeMomentSchema>;
 export type Tone = z.infer<typeof ToneSchema>;
+export type SignalType = z.infer<typeof SignalTypeSchema>;
+export type Signal = z.infer<typeof SignalSchema>;
 export type InfoVariant = z.infer<typeof InfoVariantSchema>;
 export type HousingStatus = z.infer<typeof HousingStatusSchema>;
+export type InsuranceStatus = z.infer<typeof InsuranceStatusSchema>;
 
 export type BalanceModule = z.infer<typeof BalanceSchema>;
 export type GoalsModule = z.infer<typeof GoalsSchema>;
@@ -203,9 +321,15 @@ export type HousingModule = z.infer<typeof HousingSchema>;
 export type CrisisModule = z.infer<typeof CrisisSchema>;
 export type AdvisorModule = z.infer<typeof AdvisorSchema>;
 export type InfoCardModule = z.infer<typeof InfoCardSchema>;
+export type TravelPlannerModule = z.infer<typeof TravelPlannerSchema>;
+export type BudgetModule = z.infer<typeof BudgetSchema>;
+export type InsuranceCheckModule = z.infer<typeof InsuranceCheckSchema>;
+export type TimelineModule = z.infer<typeof TimelineSchema>;
 
 export type Module = z.infer<typeof ModuleSchema>;
 export type ModuleType = Module["type"];
 export type Layout = z.infer<typeof LayoutSchema>;
 export type ComposeResponse = z.infer<typeof ComposeResponseSchema>;
 export type ComposeRequest = z.infer<typeof ComposeRequestSchema>;
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+export type LlmResponse = z.infer<typeof LlmResponseSchema>;

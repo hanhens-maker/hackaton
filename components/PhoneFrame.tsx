@@ -5,7 +5,9 @@ import type { ComposeResponse } from "@/lib/schema";
 import { toneScreen } from "@/lib/tone";
 import Renderer from "./Renderer";
 
-export default function PhoneFrame({ userKey, name, compose }: { userKey: string; name: string; compose: ComposeResponse }) {
+type Props = { userKey: string; name: string; compose: ComposeResponse; copilot: React.ReactNode };
+
+export default function PhoneFrame({ userKey, name, compose, copilot }: Props) {
   return (
     <div className="relative h-[844px] max-h-[calc(100vh-48px)] w-[390px] shrink-0 rounded-[56px] bg-slate-900 p-3 shadow-[0_40px_80px_-20px_rgba(0,54,101,0.45)]">
       <div className={`relative flex h-full flex-col overflow-hidden rounded-[44px] transition-colors duration-700 ${toneScreen[compose.tone]}`}>
@@ -36,25 +38,7 @@ export default function PhoneFrame({ userKey, name, compose }: { userKey: string
         </div>
 
         <div className="no-scrollbar flex-1 overflow-y-auto px-4 pb-10">
-          {/* Copilot message */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={userKey}
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-              className="mb-4 flex items-start gap-2"
-            >
-              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-kbc to-kbc-dark text-[13px] text-white">
-                ✦
-              </span>
-              <div className="rounded-2xl rounded-tl-md bg-kbc-dark px-4 py-3 text-[14px] leading-snug text-white shadow-sm">
-                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-300">Copilot</p>
-                {compose.reply}
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          {copilot}
 
           <Renderer layout={compose.layout} tone={compose.tone} />
         </div>

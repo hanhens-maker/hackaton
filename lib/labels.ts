@@ -1,4 +1,4 @@
-import type { HousingStatus, InfoVariant, LifeMoment, ModuleType, Tone } from "@/lib/schema";
+import type { HousingStatus, InfoVariant, InsuranceStatus, LifeMoment, ModuleType, Tone } from "@/lib/schema";
 
 export const lifeMomentLabel: Record<LifeMoment, string> = {
   new_baby: "Baby op komst",
@@ -31,6 +31,16 @@ export const moduleLabel: Record<ModuleType, string> = {
   Crisis: "Steun",
   Advisor: "Adviseur",
   InfoCard: "Info",
+  TravelPlanner: "Reisplanner",
+  Budget: "Budget",
+  InsuranceCheck: "Verzekeringscheck",
+  Timeline: "Tijdlijn",
+};
+
+export const insuranceStatusLabel: Record<InsuranceStatus, { label: string; className: string; icon: string }> = {
+  have: { label: "Heb ik", className: "bg-emerald-100 text-emerald-800", icon: "✓" },
+  missing: { label: "Ontbreekt", className: "bg-rose-100 text-rose-700", icon: "!" },
+  review: { label: "Nakijken", className: "bg-amber-100 text-amber-800", icon: "?" },
 };
 
 export const housingStatusLabel: Record<HousingStatus, string> = {

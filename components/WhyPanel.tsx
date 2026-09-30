@@ -9,7 +9,9 @@ function moduleName(m: Module): string {
   return m.type === "InfoCard" ? `Info · ${infoVariantLabel[m.variant].label}` : moduleLabel[m.type];
 }
 
-export default function WhyPanel({ userKey, compose, why }: { userKey: string; compose: ComposeResponse; why?: SeedWhy }) {
+type Props = { userKey: string; compose: ComposeResponse; why?: SeedWhy; signals?: React.ReactNode };
+
+export default function WhyPanel({ userKey, compose, why, signals }: Props) {
   const crisis = isCrisis(compose.lifeMoment);
   return (
     <aside className="flex h-full flex-col overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
@@ -52,6 +54,8 @@ export default function WhyPanel({ userKey, compose, why }: { userKey: string; c
               </p>
             </section>
           )}
+
+          {signals}
 
           <section>
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Gekozen modules</span>

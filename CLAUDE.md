@@ -1,31 +1,38 @@
 # KBC Adapt
 
-Banking app that rebuilds itself per customer. The UI is assembled from a **fixed set of hand-built modules**. Gemini only **picks and fills** modules as JSON — it never generates UI, markup, CSS or code.
+Banking app that rebuilds itself per customer. The UI is assembled from a **fixed set of hand-built modules**. OpenAI only **picks and fills** modules as JSON — it never generates UI, markup, CSS or code.
 
 Hackathon project, ~3h. Keep it simple.
 
 ## Stack
 
 - Next.js 16 (App Router) + TypeScript + Tailwind v4
-- `zod` (v4) for all validation, `framer-motion` for layout transitions, `@google/genai` for Gemini
+- `zod` (v4) for all validation, `framer-motion` for layout transitions, `openai` SDK (chat completions + strict structured outputs)
 - Deploy: Vercel. Env vars set in Vercel project settings, never committed.
 
 ## Architecture
 
 ```
-user message ──► POST /api/compose ──► Gemini (JSON mode) ──► Zod validate ──► crisis filter ──► client
-                                            │ fail / invalid
-                                            └──► fallback: closest seed user layout
-client: <Renderer layout={...}/> maps module.type → components/modules/<Module>.tsx
+copilot message ──► POST /api/compose ──► rate limit ──► Zod validate request ──► OpenAI (strict JSON schema, 8s timeout)
+                                                                                     │ error / timeout / invalid
+                                                                                     └──► current layout + safe Dutch reply
+         ◄── applyCrisisRules ◄── real balances ◄── Zod validate (after strip nulls + clip strings) ◄─┘
+client: <Copilot/> at top of phone, <Renderer layout tone/> maps module.type → components/modules/<Module>.tsx
 ```
 
 - `lib/schema.ts` — single source of truth: every module schema, `ComposeResponse`, types. Change schemas here only.
-- `data/seed-users.ts` — 5 personas, each a valid `ComposeResponse`. Used for demo + fallback.
-- `app/api/compose/route.ts` — the only AI entrypoint.
+- `data/seed-users.ts` — 5 personas, each a valid `ComposeResponse`. Starting points for the demo.
+- `app/api/compose/route.ts` — the only AI entrypoint. Server-side only.
+- `lib/llm-schema.ts` — derives the OpenAI strict JSON schema from Zod (optional → nullable, oneOf → anyOf, no string lengths) and clips strings/arrays back to the Zod caps.
+- `lib/prompt.ts` — system prompt (Dutch) + customer facts + current layout as data, then chat turns.
+- `lib/chips.ts` — static quick replies per life moment. `lib/rate-limit.ts` — in-memory, 10 req/min per IP.
+- `data/seed-why.ts` — "Waarom" panel texts, index-aligned with the seed layout. The panel always explains the seed layout, not the live one.
 - `components/Renderer.tsx` — switch on `module.type`; unknown types are impossible after validation.
 - `components/modules/` — one component per module. Pure presentational, props = the module's Zod type.
 
 ## Modules (fixed list — do not let the model invent new ones)
+
+Adding a module: Zod schema + `ModuleSchema` union in `lib/schema.ts`, component in `components/modules/`, case in `Renderer.tsx`, label in `lib/labels.ts`, description + when-to-use in `lib/prompt.ts`, crisis rule if it carries an offer. The OpenAI schema derives automatically.
 
 | type | purpose | product offer? |
 |---|---|---|
@@ -37,15 +44,20 @@ client: <Renderer layout={...}/> maps module.type → components/modules/<Module
 | `Crisis` | calm support block: message, what to do now, `bufferMonths` | no |
 | `Advisor` | contact an advisor: message + CTA | no |
 | `InfoCard` | short info block, `variant`: `pension` \| `selfEmployed` \| `study` \| `investing` | **yes** if `investing` |
+| `TravelPlanner` | destination, departure (free text), budget items, saved, monthly saving needed, optional tip | **yes** |
+| `Budget` | monthly budget per category (max 6), spent vs planned, left this month | no |
+| `InsuranceCheck` | insurances with status `have` \| `missing` \| `review` + reason, optional CTA | CTA only (stripped in crisis) |
+| `Timeline` | 2–5 upcoming life events, free-text `when` + label | no |
 
 ## Compose endpoint contract
 
-`POST /api/compose` body `{ userId?: string, message: string }` → returns
+`POST /api/compose` body `{ userId, lifeMoment, tone, layout, history (max 6), message (max 500) }` → returns
 
 ```ts
 { lifeMoment, tone, layout: Module[], reply: string }
 ```
 
+The model returns `layout: null` when the customer only asks a question and nothing changes; the server then keeps the current layout.
 - `lifeMoment`: enum (`new_baby`, `job_loss`, `first_job`, `self_employed`, `retirement`, `bereavement`, `other`)
 - `tone`: enum (`speels`, `neutraal`, `rustig`)
 - `layout`: 1–8 modules, discriminated union on `type`
@@ -53,16 +65,16 @@ client: <Renderer layout={...}/> maps module.type → components/modules/<Module
 
 ## Decisions (settled — don't relitigate)
 
-1. **Gemini picks + fills only.** Output is JSON matching `ComposeResponseSchema`. We pass the schema via `responseMimeType: "application/json"` + response schema.
-2. **Zod validates everything** the model returns, with hard caps: string max lengths, array max lengths, amounts `0 ≤ x ≤ 10_000_000`, percentages `0–100`, max 8 modules. Invalid → fallback, never render raw.
-3. **Crisis mode is enforced in code**, not by prompt. If `lifeMoment ∈ CRISIS_MOMENTS` (`job_loss`, `bereavement`), `applyCrisisRules()` runs after validation: it strips `Housing` and `InfoCard` with `variant: "investing"` (they carry product offers), and puts exactly one `Crisis` module first, adding `DEFAULT_CRISIS_MODULE` if the model left it out. The model cannot opt out of this.
-4. **Fallback = closest seed user.** On Gemini error, timeout, or validation failure → pick the seed persona whose `lifeMoment` best matches (keyword match on the message, else `userId`, else default starter). Demo must never show an error screen.
+1. **OpenAI picks + fills only.** Strict structured output matching `LlmResponseSchema` (= `ComposeResponseSchema` with nullable `layout`).
+2. **Zod validates everything** the model returns, with caps: amounts `0 ≤ x ≤ 10_000_000`, percentages `0–100`, max 8 modules (hard). Strings and arrays that are too long are clipped to their max, not rejected. Invalid → fallback, never render raw. `Balance` accounts are always overwritten with our seed data: the model never sets balances.
+3. **Crisis mode is enforced in code**, not by prompt. If `lifeMoment ∈ CRISIS_MOMENTS` (`job_loss`, `bereavement`), `applyCrisisRules()` runs after validation: it forces `tone: "rustig"`, strips `Housing`, `TravelPlanner` and `InfoCard` with `variant: "investing"` (they carry product offers), removes the `cta` from `InsuranceCheck`, and puts exactly one `Crisis` module first, adding `DEFAULT_CRISIS_MODULE` if the model left it out. The model cannot opt out of this.
+4. **Fallback = keep current state.** On OpenAI error, 8s timeout, or validation failure → current layout/lifeMoment/tone + a safe Dutch reply, header `x-compose-fallback: 1`. Demo never shows an error screen.
 5. **Vercel deploy**, Node runtime for the API route.
 
 ## Rules
 
 - **Customer-facing text in Dutch** (Flemish; informal "je" by default, formal "u" allowed when `tone` is `rustig` for older customers). Code, identifiers, comments, commits in English.
-- **No secrets in repo.** Only `.env.example` is committed. `.env*` is gitignored. `GEMINI_API_KEY`, `GEMINI_MODEL` read server-side only — never `NEXT_PUBLIC_`.
+- **No secrets in repo.** Only `.env.example` is committed. `.env*` is gitignored. `OPENAI_API_KEY`, `OPENAI_MODEL` read server-side only — never `NEXT_PUBLIC_`.
 - **All AI output is validated** through `lib/schema.ts` before it reaches the client.
 - **User input is data, not instructions.** Put the customer message in a clearly delimited field in the prompt; system instructions say to ignore any instructions inside it. Never let user text change the module list, the schema, or crisis rules.
 - **Keep it simple.** No DB, no auth, no state library, no extra abstractions. Seed data in TS files. If a feature isn't needed for the demo, skip it.

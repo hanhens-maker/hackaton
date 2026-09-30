@@ -1,4 +1,4 @@
-import type { ComposeResponse, LifeMoment } from "@/lib/schema";
+import type { ComposeResponse, LifeMoment, Signal } from "@/lib/schema";
 
 export type SeedUser = {
   id: string;
@@ -8,6 +8,8 @@ export type SeedUser = {
   profile: string;
   /** Dutch keywords used by the fallback to find the closest persona. */
   keywords: string[];
+  /** Fake "Wat KBC opmerkte" signals for the demo. */
+  signals: Signal[];
   compose: ComposeResponse;
 };
 
@@ -20,6 +22,12 @@ export const seedUsers: SeedUser[] = [
     age: 32,
     profile: "Employed nurse, partner, first baby due in 2 months. Joint account, modest savings, rents an apartment.",
     keywords: ["baby", "zwanger", "geboorte", "kindje", "bevalling", "ouderschapsverlof", "kinderbijslag", "groeipakket"],
+    signals: [
+      { type: "situatie", label: "32 jaar, samenwonend" },
+      { type: "gedrag", label: "Aankoop bij babywinkel, 2 weken geleden" },
+      { type: "gedrag", label: "Uitgaven aan babyspullen +180% deze maand" },
+      { type: "intentie", label: "Zocht in de app naar kinderbijslag" },
+    ],
     compose: {
       lifeMoment: "new_baby",
       tone: "speels",
@@ -67,6 +75,12 @@ export const seedUsers: SeedUser[] = [
     age: 47,
     profile: "Just lost his job in logistics after 15 years. Mortgage, two teenagers, some savings.",
     keywords: ["ontslag", "ontslagen", "werkloos", "job kwijt", "werk kwijt", "c4", "vdab", "herstructurering", "werkloosheid"],
+    signals: [
+      { type: "situatie", label: "47 jaar, 2 tieners, lopende woonlening" },
+      { type: "gedrag", label: "Geen loonstorting ontvangen deze maand" },
+      { type: "gedrag", label: "Geld van spaar- naar zichtrekening gezet" },
+      { type: "intentie", label: "Zocht in de app naar uitstel van aflossing" },
+    ],
     compose: {
       lifeMoment: "job_loss",
       tone: "rustig",
@@ -107,6 +121,11 @@ export const seedUsers: SeedUser[] = [
     age: 23,
     profile: "Just graduated, first full-time job in marketing. Lives in a rented studio, no savings yet.",
     keywords: ["eerste job", "afgestudeerd", "eerste loon", "starter", "nieuwe job", "eerste werk", "student"],
+    signals: [
+      { type: "situatie", label: "23 jaar, alleenwonend, huurt een studio" },
+      { type: "gedrag", label: "Eerste loonstorting van een nieuwe werkgever" },
+      { type: "intentie", label: "Bekeek de pagina over beleggen" },
+    ],
     compose: {
       lifeMoment: "first_job",
       tone: "speels",
@@ -141,6 +160,12 @@ export const seedUsers: SeedUser[] = [
     age: 36,
     profile: "Freelance web developer, 2nd year as self-employed. Irregular income, quarterly social contributions and VAT. Rents, wants to buy.",
     keywords: ["zelfstandige", "freelance", "freelancer", "btw", "eigen zaak", "ondernemer", "sociale bijdragen", "bijberoep", "kmo"],
+    signals: [
+      { type: "situatie", label: "36 jaar, freelance webontwikkelaar" },
+      { type: "gedrag", label: "Onregelmatige inkomsten van verschillende klanten" },
+      { type: "gedrag", label: "Kwartaalbetaling aan sociaal verzekeringsfonds" },
+      { type: "intentie", label: "Gebruikte de leensimulator voor een woning" },
+    ],
     compose: {
       lifeMoment: "self_employed",
       tone: "neutraal",
@@ -176,6 +201,12 @@ export const seedUsers: SeedUser[] = [
     age: 67,
     profile: "Just retired teacher. Owns her home, pension income, solid savings. Wants simplicity and security.",
     keywords: ["pensioen", "gepensioneerd", "met pensioen", "rust", "kleinkinderen", "erfenis", "schenking"],
+    signals: [
+      { type: "situatie", label: "67 jaar, woning afbetaald" },
+      { type: "gedrag", label: "Eerste pensioenstorting ontvangen" },
+      { type: "gedrag", label: "Laatste loonstorting 2 maanden geleden" },
+      { type: "intentie", label: "Vroeg aan het loket naar schenken" },
+    ],
     compose: {
       lifeMoment: "retirement",
       tone: "rustig",
