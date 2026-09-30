@@ -5,7 +5,17 @@ import type { ComposeResponse } from "@/lib/schema";
 import { toneScreen } from "@/lib/tone";
 import Renderer from "./Renderer";
 
-export default function PhoneFrame({ userKey, name, compose }: { userKey: string; name: string; compose: ComposeResponse }) {
+export default function PhoneFrame({
+  userKey,
+  name,
+  compose,
+  loading = false,
+}: {
+  userKey: string;
+  name: string;
+  compose: ComposeResponse;
+  loading?: boolean;
+}) {
   return (
     <div className="relative h-[844px] max-h-[calc(100vh-48px)] w-[390px] shrink-0 rounded-[56px] bg-slate-900 p-3 shadow-[0_40px_80px_-20px_rgba(0,54,101,0.45)]">
       <div className={`relative flex h-full flex-col overflow-hidden rounded-[44px] transition-colors duration-700 ${toneScreen[compose.tone]}`}>
@@ -58,6 +68,29 @@ export default function PhoneFrame({ userKey, name, compose }: { userKey: string
 
           <Renderer layout={compose.layout} tone={compose.tone} />
         </div>
+
+        {/* Loading overlay while the AI rebuilds the layout */}
+        <AnimatePresence>
+          {loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-x-0 top-24 z-10 flex justify-center"
+            >
+              <span className="flex items-center gap-2 rounded-full bg-kbc-dark px-4 py-2 text-xs font-semibold text-white shadow-lg">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                  className="inline-block"
+                >
+                  ✦
+                </motion.span>
+                Je app wordt aangepast…
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Home indicator */}
         <span className="pointer-events-none absolute bottom-2 left-1/2 h-1.5 w-32 -translate-x-1/2 rounded-full bg-slate-900/80" />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { applyCrisisRules } from "@/lib/schema";
+import { applyCrisisRules, type ComposeResponse } from "@/lib/schema";
 import { lifeMomentLabel } from "@/lib/labels";
 import { DEFAULT_SEED_USER_ID, seedUsers } from "@/data/seed-users";
 import { seedWhy } from "@/data/seed-why";
@@ -20,7 +20,31 @@ const personaEmoji: Record<string, string> = {
 export default function Demo() {
   const [userId, setUserId] = useState(DEFAULT_SEED_USER_ID);
   const user = seedUsers.find((u) => u.id === userId) ?? seedUsers[0];
-  const compose = applyCrisisRules(user.compose);
+  const [live, setLive] = useState<{ compose: ComposeResponse; n: number } | null>(null);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const compose = live ? applyCrisisRules(live.compose) : applyCrisisRules(user.compose);
+
+  async function send() {
+    const message = input.trim();
+    if (!message || loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/compose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, message }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as ComposeResponse;
+      setLive((prev) => ({ compose: data, n: (prev?.n ?? 0) + 1 }));
+      setInput("");
+    } catch {
+      // Demo must never show an error screen: keep the current layout.
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="grid h-full min-h-screen grid-cols-[300px_1fr_400px] gap-6 p-6">
@@ -37,11 +61,14 @@ export default function Demo() {
         <p className="mt-8 text-[11px] font-semibold uppercase tracking-widest text-slate-400">Kies een klant</p>
         <div className="mt-3 flex flex-col gap-2">
           {seedUsers.map((u) => {
-            const active = u.id === userId;
+            const active = !live && u.id === userId;
             return (
               <button
                 key={u.id}
-                onClick={() => setUserId(u.id)}
+                onClick={() => {
+                  setUserId(u.id);
+                  setLive(null);
+                }}
                 className={`relative flex items-center gap-3 rounded-2xl p-3 text-left transition-colors ${active ? "text-white" : "hover:bg-slate-50"}`}
               >
                 {active && (
@@ -65,20 +92,52 @@ export default function Demo() {
           })}
         </div>
 
-        {/* Placeholder for free-text persona input (next step: Gemini). */}
-        <div className="mt-auto rounded-2xl border-2 border-dashed border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-500">Eigen klant beschrijven</p>
-          <p className="mt-1 text-xs text-slate-400">Binnenkort: typ een situatie en de app bouwt zich live op.</p>
-        </div>
+        {/* Free-text input: the AI rebuilds the app live via /api/compose. */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send();
+          }}
+          className="mt-auto rounded-2xl border border-slate-200 p-4"
+        >
+          <p className="text-sm font-semibold text-kbc-dark">Vertel wat er speelt</p>
+          <p className="mt-1 text-xs text-slate-400">De app bouwt zich live om.</p>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void send();
+              }
+            }}
+            maxLength={1000}
+            rows={3}
+            placeholder="Bv. “Ik ben mijn job kwijt” of “Ahmed, 45, zelfstandige loodgieter, 2 tieners”"
+            className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-kbc"
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="mt-2 w-full rounded-xl bg-kbc px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+          >
+            {loading ? "App wordt aangepast…" : "Pas mijn app aan"}
+          </button>
+        </form>
       </aside>
 
       {/* Center: phone */}
       <section className="flex items-center justify-center">
-        <PhoneFrame userKey={user.id} name={user.name} compose={compose} />
+        <PhoneFrame
+          userKey={live ? `live-${live.n}` : user.id}
+          name={live ? "Jij" : user.name}
+          compose={compose}
+          loading={loading}
+        />
       </section>
 
       {/* Right: why panel */}
-      <WhyPanel userKey={user.id} compose={compose} why={seedWhy[user.id]} />
+      <WhyPanel userKey={live ? `live-${live.n}` : user.id} compose={compose} why={live ? undefined : seedWhy[user.id]} />
     </main>
   );
 }
