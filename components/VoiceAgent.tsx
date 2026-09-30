@@ -18,13 +18,15 @@ export default function VoiceAgent(props: Props) {
   );
 }
 
+const TALK_TO_URL = "https://elevenlabs.io/app/talk-to?agent_id=agent_5301m3svjba4ek6bkq9b9947gkv8";
+
 function VoiceButton({ onUserSaid, context }: Props) {
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const conversation = useConversation({
     onMessage: ({ message, role }) => {
       if (role === "user" && message.trim()) onUserSaid(message.trim().slice(0, 1000));
     },
-    onError: () => setFailed(true),
+    onError: (message) => setFailed(String(message || "verbinding mislukt")),
   });
   const { status, isSpeaking, sendContextualUpdate } = conversation;
   const connected = status === "connected";
@@ -35,21 +37,27 @@ function VoiceButton({ onUserSaid, context }: Props) {
   }, [connected, context, sendContextualUpdate]);
 
   async function start() {
-    setFailed(false);
+    setFailed(null);
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setFailed("geen toegang tot de microfoon");
+      return;
+    }
+    try {
       const res = await fetch("/api/voice");
       const auth = (await res.json()) as { agentId?: string; conversationToken?: string };
       if (auth.conversationToken) {
         conversation.startSession({ conversationToken: auth.conversationToken, connectionType: "webrtc" });
       } else if (auth.agentId) {
-        conversation.startSession({ agentId: auth.agentId, connectionType: "webrtc" });
+        // Public agent: plain websocket straight to ElevenLabs, fewest moving parts.
+        conversation.startSession({ agentId: auth.agentId, connectionType: "websocket" });
       } else {
-        setFailed(true);
+        setFailed("geen agent geconfigureerd");
       }
-    } catch {
-      // No mic permission or network issue: the text input keeps working.
-      setFailed(true);
+    } catch (e) {
+      // Network issue: the text input keeps working.
+      setFailed(e instanceof Error ? e.message : "verbinding mislukt");
     }
   }
 
@@ -70,7 +78,13 @@ function VoiceButton({ onUserSaid, context }: Props) {
       </button>
       {connected && <p className="mt-1 text-center text-xs text-slate-400">Klik opnieuw om te stoppen</p>}
       {failed && !connected && (
-        <p className="mt-1 text-center text-xs text-slate-400">Spraak lukt nu niet — typ gerust je vraag.</p>
+        <p className="mt-1 text-center text-xs text-slate-400">
+          Spraak lukt nu niet ({failed}) — typ gerust je vraag, of{" "}
+          <a href={TALK_TO_URL} target="_blank" rel="noreferrer" className="underline">
+            praat via ElevenLabs
+          </a>
+          .
+        </p>
       )}
     </div>
   );
