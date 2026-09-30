@@ -1,11 +1,30 @@
 import type { StepPlanModule } from "@/lib/schema";
+import { useTone } from "@/lib/tone";
 
-// TODO: real design. Stub renders the module type + title only.
-export default function StepPlan(props: StepPlanModule) {
+export default function StepPlan({ title, steps }: StepPlanModule) {
+  const t = useTone();
+  const done = steps.filter((s) => s.done).length;
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400">StepPlan</p>
-      <h2 className="text-lg font-semibold">{props.title}</h2>
+    <section className={t.card}>
+      <div className="flex items-baseline justify-between">
+        <h3 className={t.title}>{title}</h3>
+        <span className={t.chip}>
+          {done}/{steps.length}
+        </span>
+      </div>
+      <ul className="mt-2">
+        {steps.map((s) => (
+          <li key={s.label} className={`flex items-start gap-3 ${t.row}`}>
+            <span
+              className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold text-white"
+              style={s.done ? { background: t.accent, borderColor: t.accent } : { borderColor: "#CBD5E1" }}
+            >
+              {s.done ? "✓" : ""}
+            </span>
+            <span className={`${t.body} ${s.done ? "text-slate-400 line-through" : ""}`}>{s.label}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

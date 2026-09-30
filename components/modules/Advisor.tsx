@@ -1,11 +1,24 @@
 import type { AdvisorModule } from "@/lib/schema";
+import { useTone } from "@/lib/tone";
 
-// TODO: real design. Stub renders the module type + title only.
-export default function Advisor(props: AdvisorModule) {
+export default function Advisor({ title, message, cta }: AdvisorModule) {
+  const t = useTone();
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400">Advisor</p>
-      <h2 className="text-lg font-semibold">{props.title}</h2>
+    <section className={t.card}>
+      <div className="flex items-start gap-3">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-white"
+          style={{ background: t.accent }}
+          aria-hidden
+        >
+          💬
+        </div>
+        <div>
+          <h3 className={t.title}>{title}</h3>
+          <p className={`${t.body} mt-1`}>{message}</p>
+        </div>
+      </div>
+      <button className={`${t.button} mt-4 w-full`}>{cta}</button>
     </section>
   );
 }
