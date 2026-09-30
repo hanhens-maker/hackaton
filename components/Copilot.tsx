@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MAX_MESSAGE_LENGTH } from "@/lib/schema";
+import VoiceInput from "./VoiceInput";
 
 type Props = {
   reply: string;
@@ -81,6 +82,7 @@ export default function Copilot({ reply, lastUserMessage, chips, pending, onSend
           placeholder="Vertel de copilot wat er speelt..."
           className="min-w-0 flex-1 bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none disabled:opacity-60"
         />
+        <VoiceInput disabled={pending} onTranscript={send} />
         <button
           type="submit"
           disabled={pending || !draft.trim()}
