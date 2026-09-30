@@ -8,6 +8,7 @@ import { DEFAULT_SEED_USER_ID, seedUsers } from "@/data/seed-users";
 import { seedWhy } from "@/data/seed-why";
 import PhoneFrame from "./PhoneFrame";
 import WhyPanel from "./WhyPanel";
+import VoiceAgent from "./VoiceAgent";
 
 const personaEmoji: Record<string, string> = {
   baby: "👶",
@@ -25,8 +26,8 @@ export default function Demo() {
   const [loading, setLoading] = useState(false);
   const compose = live ? applyCrisisRules(live.compose) : applyCrisisRules(user.compose);
 
-  async function send() {
-    const message = input.trim();
+  async function send(text = input) {
+    const message = text.trim();
     if (!message || loading) return;
     setLoading(true);
     try {
@@ -123,6 +124,11 @@ export default function Demo() {
           >
             {loading ? "App wordt aangepast…" : "Pas mijn app aan"}
           </button>
+          {/* Voice: each spoken turn rebuilds the app through the same /api/compose path. */}
+          <VoiceAgent
+            onUserSaid={(text) => void send(text)}
+            context={live ? `De app toont nu: ${live.compose.layout.map((m) => m.type).join(", ")}. ${live.compose.reply}` : undefined}
+          />
         </form>
       </aside>
 
