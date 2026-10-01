@@ -1,0 +1,170 @@
+<!doctype html>
+<html
+  lang="nl"
+  data-composition-variables='[{"id":"prompter","type":"boolean","label":"Teleprompter tonen","default":true}]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Inter"; font-weight: 400; src: url("assets/fonts/inter-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-weight: 600; src: url("assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Inter"; font-weight: 800; src: url("assets/fonts/inter-latin-800-normal.woff2") format("woff2"); }
+
+      :root {
+        --kbc: #00aeef;
+        --kbc-dark: #00285f;
+        --ink: #ffffff;
+        --muted: #9fc3e6;
+        --band: rgba(0, 20, 52, 0.94);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f4f6f9; }
+
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; font-family: "Inter", ui-sans-serif, system-ui, sans-serif; }
+      #footage-wrap { position: absolute; inset: 0; transform-origin: 50% 50%; }
+      #demo { width: 1920px; height: 1080px; object-fit: cover; display: block; }
+
+      /* Teleprompter band */
+      #prompter { position: absolute; left: 0; right: 0; bottom: 0; height: 236px; background: var(--band); color: var(--ink); }
+      #prompter.off { display: none; }
+      #pr-head { position: absolute; left: 64px; top: 22px; right: 64px; display: flex; align-items: center; gap: 14px; font-size: 20px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+      #pr-dot { width: 14px; height: 14px; border-radius: 50%; background: #ff4d4d; }
+      .pr-scene { position: absolute; left: 28px; top: -3px; white-space: nowrap; }
+      .pr-cur { position: absolute; left: 64px; right: 64px; top: 66px; font-size: 46px; font-weight: 800; line-height: 1.18; letter-spacing: -0.01em; }
+      .pr-nxt { position: absolute; left: 64px; right: 64px; top: 176px; font-size: 24px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pr-nxt b { font-weight: 600; color: var(--kbc); margin-right: 10px; }
+      .pr-bar { position: absolute; left: 0; bottom: 0; height: 8px; width: 100%; background: var(--kbc); transform-origin: 0 50%; }
+      .pr-wait { color: var(--muted); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="180" data-fps="30" data-width="1920" data-height="1080">
+      <div id="footage-wrap">
+        <video id="demo" class="clip" src="assets/demo.mp4" data-start="0" data-duration="180" data-track-index="0" muted playsinline></video>
+      </div>
+      <div id="prompter" class="clip" data-start="0" data-duration="180" data-track-index="1" data-layout-allow-overflow="true">
+        <div id="pr-head"><span id="pr-dot"></span></div>
+      </div>
+    </div>
+
+    <script>
+      // Voiceover script, one cue per line: [start second, text]. Scene starts carry a scene label.
+      const SCENES = [
+        [0, "1 · Opening"], [20, "2 · Hoe KBC je leert kennen"], [50, "3 · Lotte verwacht een baby"],
+        [85, "4 · Marc verliest zijn job"], [120, "5 · Japan"], [140, "6 · Over alle kanalen"], [160, "7 · Schaal + afsluiter"],
+      ];
+      const CUES = [
+        [0.5, "Vandaag krijgt elke KBC-klant hetzelfde dashboard."],
+        [4.5, "Of je nu 19 bent of 67, net een baby krijgt of je job verliest."],
+        [10.5, "KBC Adapt verandert dat:"],
+        [13.0, "een bank die zich aanpast aan wat jij nu meemaakt."],
+        [20.5, "Bij de eerste login voert elke klant een kort gesprek met een voice agent:"],
+        [26.5, "wat is je situatie, wat wil je bereiken?"],
+        [30.0, "Dat combineren we met drie soorten signalen."],
+        [33.5, "Situatie: wie je bent."],
+        [36.0, "Gedrag: wat je doet, zoals uitgaven en sparen."],
+        [40.5, "En intentie: wat je wil bereiken."],
+        [43.5, "Samen vertellen ze KBC welk levensmoment je doormaakt."],
+        [51.0, "Lotte vertelt de copilot dat ze een kindje verwacht."],
+        [57.5, "Kijk: de app bouwt zich live om."],
+        [61.0, "Gezin, een spaarpot voor de baby, een stappenplan."],
+        [67.5, "En rechts ziet KBC het nieuwe signaal."],
+        [73.0, "Lotte moest niets instellen."],
+        [86.5, "Marc verliest zijn job."],
+        [93.5, "De app wordt rustiger."],
+        [96.5, "Geen leningen of beleggingen meer, enkel steun:"],
+        [101.0, "hoelang zijn buffer volstaat en wat hij nu moet doen."],
+        [107.0, "Producten verschijnen enkel als ze passen bij je situatie,"],
+        [112.0, "niet als een lijst om te verkopen."],
+        [121.0, "En het werkt ook voor dromen."],
+        [124.5, "Lotte wil naar Japan."],
+        [128.0, "De copilot bouwt meteen een reisplanner"],
+        [131.5, "met budget en spaarplan."],
+        [141.0, "Dit klantbeeld blijft niet in de app."],
+        [145.0, "Belt Marc naar KBC Live of stapt hij binnen in een kantoor,"],
+        [150.5, "dan ziet de adviseur meteen dezelfde context."],
+        [155.0, "Marc hoeft zijn verhaal nooit opnieuw te doen."],
+        [160.3, "Personaliseren betekent niet miljoenen apps ontwerpen."],
+        [163.8, "KBC bouwt één keer een set veilige bouwblokken,"],
+        [167.0, "de AI kiest per klant de juiste combinatie."],
+        [170.3, "Eén platform, herbruikbare blokken, miljoenen persoonlijke ervaringen."],
+        [174.0, "KBC Adapt: van één dashboard voor iedereen,"],
+        [176.8, "naar een bank die meebeweegt met jouw leven."],
+      ];
+      const END = 180;
+      // A line stays up until the next one starts, but at most this long; after that the band shows "wacht…".
+      const HOLD_MAX = 6;
+
+      const vars = (window.__hyperframes && window.__hyperframes.getVariables && window.__hyperframes.getVariables()) || {};
+      const prompter = document.getElementById("prompter");
+      if (vars.prompter === false) prompter.classList.add("off");
+
+      const head = document.getElementById("pr-head");
+      const el = (tag, cls, html, parent) => { const e = document.createElement(tag); e.className = cls; e.innerHTML = html; parent.appendChild(e); return e; };
+      const sceneAt = (t) => SCENES.filter(([s]) => s <= t).length - 1;
+
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene labels in the band header.
+      SCENES.forEach(([start, label], i) => {
+        const e = el("span", "pr-scene", label, head);
+        e.id = "pr-scene-" + i;
+        const end = i + 1 < SCENES.length ? SCENES[i + 1][0] : END;
+        tl.fromTo(e, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, start);
+        if (end < END) tl.to(e, { autoAlpha: 0, duration: 0.15 }, end - 0.15);
+      });
+
+      // Each cue: current line + "next" preview + progress bar for the time the line is on screen.
+      CUES.forEach(([start, text], i) => {
+        const next = CUES[i + 1];
+        const nextStart = next ? next[0] : END;
+        const end = Math.min(nextStart, start + HOLD_MAX, END);
+        const cur = el("div", "pr-cur", text, prompter);
+        cur.id = "pr-cur-" + i;
+        const nxtText = next ? (sceneAt(next[0]) !== sceneAt(start) ? "Volgende scène · " + next[1] : next[1]) : "Einde";
+        const nxt = el("div", "pr-nxt", "<b>Volgende</b>" + nxtText, prompter);
+        nxt.id = "pr-nxt-" + i;
+        const bar = el("div", "pr-bar", "", prompter);
+        bar.id = "pr-bar-" + i;
+
+        tl.fromTo(cur, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.18, ease: "power2.out" }, start);
+        tl.to(cur, { autoAlpha: 0, duration: 0.12 }, end - 0.12);
+        tl.fromTo(nxt, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18 }, start);
+        tl.to(nxt, { autoAlpha: 0, duration: 0.12 }, end - 0.12);
+        tl.fromTo(bar, { autoAlpha: 1, scaleX: 0 }, { scaleX: 1, duration: end - start, ease: "none" }, start);
+        tl.to(bar, { autoAlpha: 0, duration: 0.01 }, end);
+
+        // Gap before the next line (visual action, no speaking): show a quiet "wait" cue.
+        if (nextStart - end > 0.5) {
+          const wait = el("div", "pr-cur pr-wait", "… wacht", prompter);
+          wait.id = "pr-wait-" + i;
+          tl.fromTo(wait, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, end);
+          tl.to(wait, { autoAlpha: 0, duration: 0.12 }, nextStart - 0.12);
+        }
+      });
+      // Before the first line.
+      const first = el("div", "pr-cur pr-wait", "Klaar… begin te spreken", prompter);
+      first.id = "pr-first";
+      tl.fromTo(first, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1 }, CUES[0][0] - 0.1);
+
+      // Punch-ins on the key moments (footage wrapper only; the timed <video> is never transformed).
+      const PUNCH = [
+        { at: 67.3, end: 74.0, origin: "1651px 640px", scale: 1.32 }, // new "Nieuw" signal in the why-panel
+        { at: 94.0, end: 104.5, origin: "900px 520px", scale: 1.26 }, // Marc's calm crisis screen
+        { at: 127.5, end: 137.5, origin: "900px 470px", scale: 1.26 }, // Japan travel planner
+      ];
+      tl.set("#footage-wrap", { scale: 1, transformOrigin: "50% 50%" }, 0);
+      PUNCH.forEach((p) => {
+        tl.set("#footage-wrap", { transformOrigin: p.origin }, p.at);
+        tl.to("#footage-wrap", { scale: p.scale, duration: 1.0, ease: "power2.inOut" }, p.at);
+        tl.to("#footage-wrap", { scale: 1, duration: 0.9, ease: "power2.inOut" }, p.end - 0.9);
+      });
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
