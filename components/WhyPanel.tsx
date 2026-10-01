@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { isCrisis, type ComposeResponse, type Module } from "@/lib/schema";
+import { isCrisis, type Dashboard, type Module } from "@/lib/schema";
 import { infoVariantLabel, lifeMomentLabel, moduleLabel, toneDescription, toneLabel } from "@/lib/labels";
 import type { SeedWhy } from "@/data/seed-why";
 
@@ -9,8 +9,18 @@ function moduleName(m: Module): string {
   return m.type === "InfoCard" ? `Info · ${infoVariantLabel[m.variant].label}` : moduleLabel[m.type];
 }
 
-export default function WhyPanel({ userKey, compose, why }: { userKey: string; compose: ComposeResponse; why?: SeedWhy }) {
-  const crisis = isCrisis(compose.lifeMoment);
+export default function WhyPanel({
+  userKey,
+  dashboard,
+  why,
+  adapted,
+}: {
+  userKey: string;
+  dashboard: Dashboard;
+  why?: SeedWhy;
+  adapted?: boolean;
+}) {
+  const crisis = isCrisis(dashboard.lifeMoment);
   return (
     <aside className="flex h-full flex-col overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-kbc">Uitleg</p>
@@ -29,19 +39,24 @@ export default function WhyPanel({ userKey, compose, why }: { userKey: string; c
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Levensmoment</span>
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${crisis ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-kbc-dark"}`}>
-                {lifeMomentLabel[compose.lifeMoment]}
+                {lifeMomentLabel[dashboard.lifeMoment]}
               </span>
             </div>
             {why && <p className="mt-2 text-sm leading-relaxed text-slate-700">{why.lifeMoment}</p>}
+            {adapted && !why && (
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                Deze layout is in de demo aangepast en bewaard in deze browser, per klant.
+              </p>
+            )}
           </section>
 
           <section>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Toon</span>
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">{toneLabel[compose.tone]}</span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">{toneLabel[dashboard.tone]}</span>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">{why?.tone}</p>
-            <p className="mt-1 text-xs text-slate-400">{toneDescription[compose.tone]}</p>
+            <p className="mt-1 text-xs text-slate-400">{toneDescription[dashboard.tone]}</p>
           </section>
 
           {crisis && (
@@ -56,7 +71,7 @@ export default function WhyPanel({ userKey, compose, why }: { userKey: string; c
           <section>
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Gekozen modules</span>
             <ol className="mt-2 space-y-2">
-              {compose.layout.map((m, i) => (
+              {dashboard.layout.map((m, i) => (
                 <motion.li
                   key={i}
                   initial={{ opacity: 0, x: 12 }}

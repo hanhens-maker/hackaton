@@ -5,6 +5,7 @@ import { z } from "zod";
 
 export const MAX_MODULES = 8;
 export const MAX_AMOUNT = 10_000_000;
+export const MAX_DEMO_ACTIONS = 10;
 
 const shortText = z.string().trim().min(1).max(80);
 const mediumText = z.string().trim().min(1).max(200);
@@ -139,20 +140,52 @@ export const ModuleSchema = z.discriminatedUnion("type", [
   InfoCardSchema,
 ]);
 
-// ---------- Compose ----------
+// ---------- Dashboard ----------
 
 export const LayoutSchema = z.array(ModuleSchema).min(1).max(MAX_MODULES);
 
-export const ComposeResponseSchema = z.object({
+/** What the phone renders. Gemini returns exactly this shape; it never writes chat text. */
+export const DashboardSchema = z.object({
   lifeMoment: LifeMomentSchema,
   tone: ToneSchema,
   layout: LayoutSchema,
-  reply: longText,
 });
 
+// ---------- Demo actions (simulated, never real banking) ----------
+
+export const SavingsGoalDraftSchema = z.object({
+  kind: z.literal("savings_goal"),
+  goalName: shortText,
+  targetAmountEuro: z.number().finite().min(1).max(1_000_000),
+  monthlyAmountEuro: z.number().finite().min(0).max(100_000).optional(),
+});
+
+export const AdvisorAppointmentDraftSchema = z.object({
+  kind: z.literal("advisor_appointment"),
+  topic: shortText,
+  preferredMoment: z.string().trim().min(1).max(60),
+});
+
+export const DemoActionDraftSchema = z.discriminatedUnion("kind", [SavingsGoalDraftSchema, AdvisorAppointmentDraftSchema]);
+
+export const DemoActionSchema = z.intersection(
+  DemoActionDraftSchema,
+  z.object({ id: z.string().min(1).max(64), confirmedAt: z.string().max(40) }),
+);
+
+// ---------- Compose endpoint ----------
+
 export const ComposeRequestSchema = z.object({
-  userId: z.string().trim().max(64).optional(),
+  customerId: z.string().trim().min(1).max(64),
   message: z.string().trim().min(1).max(1000),
+  dashboard: DashboardSchema,
+  confirmedActions: z.array(DemoActionSchema).max(MAX_DEMO_ACTIONS).default([]),
+});
+
+export const ComposeResultSchema = z.object({
+  dashboard: DashboardSchema,
+  source: z.enum(["gemini", "fallback"]),
+  crisisDetected: z.boolean(),
 });
 
 // ---------- Crisis rules (enforced in code, not by prompt) ----------
@@ -168,6 +201,23 @@ export function isProductModule(m: Module): boolean {
   return m.type === "Housing" || (m.type === "InfoCard" && m.variant === "investing");
 }
 
+const CRISIS_PHRASES: ReadonlyArray<readonly [LifeMoment, readonly string[]]> = [
+  [
+    "job_loss",
+    ["job kwijt", "werk kwijt", "baan kwijt", "job verloren", "werk verloren", "baan verloren", "ontslag", "ontslagen", "werkloos", "c4 gekregen", "herstructurering"],
+  ],
+  ["bereavement", ["overleden", "overlijden", "gestorven", "begrafenis", "weduwe", "weduwnaar", "in de rouw"]],
+];
+
+/** Keyword check on what the customer said, so a crisis never depends on the model's classification. */
+export function detectCrisisMoment(text: string): LifeMoment | null {
+  const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [moment, phrases] of CRISIS_PHRASES) {
+    if (phrases.some((p) => normalized.includes(p))) return moment;
+  }
+  return null;
+}
+
 /** Used when the model forgets the Crisis block in a crisis moment. */
 export const DEFAULT_CRISIS_MODULE: CrisisModule = {
   type: "Crisis",
@@ -178,14 +228,14 @@ export const DEFAULT_CRISIS_MODULE: CrisisModule = {
 };
 
 /**
- * In a crisis moment: drop product modules, keep one Crisis block and put it first.
+ * In a crisis moment: calm tone, drop product modules, keep one Crisis block and put it first.
  * No-op otherwise.
  */
-export function applyCrisisRules(res: ComposeResponse): ComposeResponse {
-  if (!isCrisis(res.lifeMoment)) return res;
-  const crisis = res.layout.find((m): m is CrisisModule => m.type === "Crisis") ?? DEFAULT_CRISIS_MODULE;
-  const rest = res.layout.filter((m) => m.type !== "Crisis" && !isProductModule(m));
-  return { ...res, layout: [crisis, ...rest].slice(0, MAX_MODULES) };
+export function applyCrisisRules(d: Dashboard): Dashboard {
+  if (!isCrisis(d.lifeMoment)) return d;
+  const crisis = d.layout.find((m): m is CrisisModule => m.type === "Crisis") ?? DEFAULT_CRISIS_MODULE;
+  const rest = d.layout.filter((m) => m.type !== "Crisis" && !isProductModule(m));
+  return { ...d, tone: "rustig", layout: [crisis, ...rest].slice(0, MAX_MODULES) };
 }
 
 // ---------- Types ----------
@@ -207,5 +257,8 @@ export type InfoCardModule = z.infer<typeof InfoCardSchema>;
 export type Module = z.infer<typeof ModuleSchema>;
 export type ModuleType = Module["type"];
 export type Layout = z.infer<typeof LayoutSchema>;
-export type ComposeResponse = z.infer<typeof ComposeResponseSchema>;
+export type Dashboard = z.infer<typeof DashboardSchema>;
+export type DemoActionDraft = z.infer<typeof DemoActionDraftSchema>;
+export type DemoAction = z.infer<typeof DemoActionSchema>;
 export type ComposeRequest = z.infer<typeof ComposeRequestSchema>;
+export type ComposeResult = z.infer<typeof ComposeResultSchema>;

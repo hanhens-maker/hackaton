@@ -1,4 +1,4 @@
-import type { ComposeResponse, LifeMoment } from "@/lib/schema";
+import type { Dashboard, LifeMoment } from "@/lib/schema";
 
 export type SeedUser = {
   id: string;
@@ -6,9 +6,11 @@ export type SeedUser = {
   age: number;
   /** Short English description, fed to the model as customer context. */
   profile: string;
-  /** Dutch keywords used by the fallback to find the closest persona. */
-  keywords: string[];
-  compose: ComposeResponse;
+  /** How the assistant and the dashboard address this customer. Chosen per customer, never inferred from age. */
+  addressForm: "je" | "u";
+  /** Copilot greeting shown above the seed dashboard. */
+  greeting: string;
+  dashboard: Dashboard;
 };
 
 export const DEFAULT_SEED_USER_ID = "starter";
@@ -17,13 +19,13 @@ export const seedUsers: SeedUser[] = [
   {
     id: "baby",
     name: "Sofie",
+    addressForm: "je",
     age: 32,
     profile: "Employed nurse, partner, first baby due in 2 months. Joint account, modest savings, rents an apartment.",
-    keywords: ["baby", "zwanger", "geboorte", "kindje", "bevalling", "ouderschapsverlof", "kinderbijslag", "groeipakket"],
-    compose: {
+    greeting: "Proficiat, Sofie! We hebben je app aangepast zodat je alles voor de komst van je kindje op één plek hebt.",
+    dashboard: {
       lifeMoment: "new_baby",
       tone: "speels",
-      reply: "Proficiat, Sofie! We hebben je app aangepast zodat je alles voor de komst van je kindje op één plek hebt.",
       layout: [
         {
           type: "Family",
@@ -64,13 +66,13 @@ export const seedUsers: SeedUser[] = [
   {
     id: "job-loss",
     name: "Marc",
+    addressForm: "je",
     age: 47,
     profile: "Just lost his job in logistics after 15 years. Mortgage, two teenagers, some savings.",
-    keywords: ["ontslag", "ontslagen", "werkloos", "job kwijt", "werk kwijt", "c4", "vdab", "herstructurering", "werkloosheid"],
-    compose: {
+    greeting: "Dat is een zware klap, Marc. We hebben je app rustiger gemaakt en tonen alleen wat je nu echt nodig hebt.",
+    dashboard: {
       lifeMoment: "job_loss",
       tone: "rustig",
-      reply: "Dat is een zware klap, Marc. We hebben je app rustiger gemaakt en tonen alleen wat je nu echt nodig hebt.",
       layout: [
         {
           type: "Crisis",
@@ -104,13 +106,13 @@ export const seedUsers: SeedUser[] = [
   {
     id: "starter",
     name: "Lotte",
+    addressForm: "je",
     age: 23,
     profile: "Just graduated, first full-time job in marketing. Lives in a rented studio, no savings yet.",
-    keywords: ["eerste job", "afgestudeerd", "eerste loon", "starter", "nieuwe job", "eerste werk", "student"],
-    compose: {
+    greeting: "Welkom in de wereld van het eerste loon, Lotte! Hier is een app die met je meegroeit.",
+    dashboard: {
       lifeMoment: "first_job",
       tone: "speels",
-      reply: "Welkom in de wereld van het eerste loon, Lotte! Hier is een app die met je meegroeit.",
       layout: [
         {
           type: "Balance",
@@ -138,13 +140,13 @@ export const seedUsers: SeedUser[] = [
   {
     id: "self-employed",
     name: "Youssef",
+    addressForm: "je",
     age: 36,
     profile: "Freelance web developer, 2nd year as self-employed. Irregular income, quarterly social contributions and VAT. Rents, wants to buy.",
-    keywords: ["zelfstandige", "freelance", "freelancer", "btw", "eigen zaak", "ondernemer", "sociale bijdragen", "bijberoep", "kmo"],
-    compose: {
+    greeting: "Hier is je ondernemersoverzicht, Youssef: cashflow, reserves en wat er binnenkort vervalt.",
+    dashboard: {
       lifeMoment: "self_employed",
       tone: "neutraal",
-      reply: "Hier is je ondernemersoverzicht, Youssef: cashflow, reserves en wat er binnenkort vervalt.",
       layout: [
         {
           type: "Balance",
@@ -173,14 +175,15 @@ export const seedUsers: SeedUser[] = [
   {
     id: "retiree",
     name: "Jeanine",
+    addressForm: "u",
     age: 67,
     profile: "Just retired teacher. Owns her home, pension income, solid savings. Wants simplicity and security.",
-    keywords: ["pensioen", "gepensioneerd", "met pensioen", "rust", "kleinkinderen", "erfenis", "schenking"],
-    compose: {
+    greeting: "Geniet van uw pensioen, Jeanine. We hebben uw app eenvoudig en overzichtelijk gemaakt.",
+    dashboard: {
       lifeMoment: "retirement",
       tone: "rustig",
-      reply: "Geniet van uw pensioen, Jeanine. We hebben uw app eenvoudig en overzichtelijk gemaakt.",
       layout: [
+        { type: "InfoCard", variant: "pension", title: "Uw eerste pensioen is gestort", body: "Uw pensioen komt voortaan elke maand rond de 25e binnen op uw zichtrekening." },
         {
           type: "Balance",
           title: "Uw rekeningen",
@@ -189,7 +192,6 @@ export const seedUsers: SeedUser[] = [
             { label: "Spaarrekening", balance: 62000 },
           ],
         },
-        { type: "InfoCard", variant: "pension", title: "Uw eerste pensioen is gestort", body: "Uw pensioen komt voortaan elke maand rond de 25e binnen op uw zichtrekening." },
         { type: "Housing", title: "Uw woning", status: "owner", monthlyCost: 180, plan: "Uw woning is afbetaald. Denkt u aan aanpassingen om er lang comfortabel te blijven wonen?" },
         { type: "Advisor", title: "Liever persoonlijk?", message: "Uw vaste adviseur in het kantoor helpt u graag verder, bijvoorbeeld over schenken aan uw kleinkinderen.", cta: "Maak een afspraak" },
       ],
@@ -202,5 +204,5 @@ export function getSeedUser(id: string | undefined): SeedUser | undefined {
 }
 
 export function getSeedUserByMoment(moment: LifeMoment): SeedUser | undefined {
-  return seedUsers.find((u) => u.compose.lifeMoment === moment);
+  return seedUsers.find((u) => u.dashboard.lifeMoment === moment);
 }

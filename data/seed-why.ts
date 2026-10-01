@@ -1,6 +1,6 @@
 /**
  * Dutch explanations for the "Waarom ziet deze klant dit?" panel.
- * `modules[i]` explains `seedUser.compose.layout[i]`.
+ * `modules[i]` explains `seedUser.dashboard.layout[i]`.
  */
 export type SeedWhy = {
   lifeMoment: string;
@@ -56,8 +56,8 @@ export const seedWhy: Record<string, SeedWhy> = {
     lifeMoment: "Jeanine is net met pensioen. Ze heeft een afbetaald huis en een mooie spaarpot, en wil vooral eenvoud en zekerheid.",
     tone: "Grote letters, veel rust en de beleefdheidsvorm \"u\".",
     modules: [
-      "Eerst het belangrijkste: hoeveel staat er op haar rekeningen.",
-      "Haar eerste pensioen is gestort. We tonen wanneer het voortaan binnenkomt.",
+      "Haar eerste pensioen is net gestort. Dat is het moment van nu, dus het staat bovenaan.",
+      "Daarna haar rekeningen, zodat ze meteen ziet dat alles klopt.",
       "Haar woning is afbetaald. Aanpassingen om er lang te blijven wonen worden relevant.",
       "Ze vertrouwt op haar vaste adviseur, bijvoorbeeld voor een schenking aan haar kleinkinderen.",
     ],
