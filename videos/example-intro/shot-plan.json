@@ -1,0 +1,19 @@
+{
+  "category": "kinetic-type",
+  "duration_s": 10,
+  "fps": 30,
+  "canvas": { "width": 1920, "height": 1080 },
+  "style": "clean product intro, light UI, echoes example.com's own minimal page",
+  "palette": ["#38488f", "#1d1d1f", "#6b6b76", "#fdfdff", "#f0f0f2"],
+  "font": "Inter (local woff2) + JetBrains Mono for the URL",
+  "export": "mp4",
+  "asset_needs": [],
+  "source_note": "example.com is denied by the environment's network policy, so no capture; copy paraphrases the site's public text.",
+  "brief": "A browser address bar types 'example.com' and the page card opens out of it. The headline 'Example Domain' rises word by word, then three short claims slam in one at a time with the key word in brand blue. It resolves on a centered lockup: the URL, the headline and the line 'Use it in your docs. No permission needed.' One motif: the card that grows out of the address bar.",
+  "scenes": [
+    { "id": "hook", "start": 0, "end": 2.4, "tag": "Hook", "copy": "example.com", "motion": "typewriter in an address bar, caret blink", "emphasis_words": ["example.com"] },
+    { "id": "build", "start": 2.4, "end": 4.6, "tag": "Build", "copy": "Example Domain", "motion": "card expands from bar, words rise", "emphasis_words": ["Domain"] },
+    { "id": "punch", "start": 4.6, "end": 7.6, "tag": "Punch", "copy": ["Made for examples.", "Free to use.", "No permission needed."], "motion": "slam, one line per beat", "emphasis_words": ["examples", "Free", "No permission"] },
+    { "id": "resolve", "start": 7.6, "end": 10, "tag": "Resolve", "copy": "example.com — Use it in your docs.", "motion": "settle to lockup, underline draw, hold", "emphasis_words": ["example.com"] }
+  ]
+}
