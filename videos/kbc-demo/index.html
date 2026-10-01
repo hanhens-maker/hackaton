@@ -40,31 +40,39 @@
 
       /* Subtle scene label in the empty part of the persona column */
       #labels { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
-      .scene-label { position: absolute; left: 62px; top: 760px; width: 330px; font-size: 19px; font-weight: 600; color: #8a94a6; letter-spacing: 0.01em; }
-      .scene-label small { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--kbc); margin-bottom: 6px; }
+      .scene-label { position: absolute; left: 62px; top: 760px; width: 330px; font-size: 19px; font-weight: 600; color: #566175; letter-spacing: 0.01em; }
+      .scene-label small { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #00639a; margin-bottom: 6px; }
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="180" data-fps="30" data-width="1920" data-height="1080">
+    <div id="root" data-composition-id="main" data-start="0" data-duration="122.1" data-fps="30" data-width="1920" data-height="1080">
       <div id="footage-wrap">
-        <video id="demo" class="clip" src="assets/demo.mp4" data-start="0" data-duration="180" data-track-index="0" muted playsinline></video>
+        <video id="demo-0" class="clip" src="assets/demo.mp4" data-start="0" data-media-start="0" data-duration="14.8" data-track-index="0" muted playsinline></video>
+        <video id="demo-1" class="clip" src="assets/demo.mp4" data-start="14.8" data-media-start="19.6" data-duration="24.0" data-track-index="0" muted playsinline></video>
+        <video id="demo-2" class="clip" src="assets/demo.mp4" data-start="38.8" data-media-start="50.6" data-duration="5.0" data-track-index="0" muted playsinline></video>
+        <video id="demo-3" class="clip" src="assets/demo.mp4" data-start="43.8" data-media-start="56.6" data-duration="8.4" data-track-index="0" muted playsinline></video>
+        <video id="demo-4" class="clip" src="assets/demo.mp4" data-start="52.2" data-media-start="67.2" data-duration="8.4" data-track-index="0" muted playsinline></video>
+        <video id="demo-5" class="clip" src="assets/demo.mp4" data-start="60.6" data-media-start="88.6" data-duration="18.2" data-track-index="0" muted playsinline></video>
+        <video id="demo-6" class="clip" src="assets/demo.mp4" data-start="78.8" data-media-start="121.4" data-duration="10.6" data-track-index="0" muted playsinline></video>
+        <video id="demo-7" class="clip" src="assets/demo.mp4" data-start="89.4" data-media-start="140.6" data-duration="12.8" data-track-index="0" muted playsinline></video>
+        <video id="demo-8" class="clip" src="assets/demo.mp4" data-start="102.2" data-media-start="160.1" data-duration="19.9" data-track-index="0" muted playsinline></video>
       </div>
       <!-- Voiceover, recorded per scene by the team; split at sentence pauses and placed on the matching on-screen action. -->
       <audio id="vo-s1" src="assets/vo/s1.wav" data-start="0.5" data-duration="13.74" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s2" src="assets/vo/s2.wav" data-start="20.5" data-duration="22.5" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s3a" src="assets/vo/s3a.wav" data-start="51.0" data-duration="4.35" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s3b" src="assets/vo/s3b.wav" data-start="58.2" data-duration="3.3" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s3c" src="assets/vo/s3c.wav" data-start="61.5" data-duration="3.3" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s3d" src="assets/vo/s3d.wav" data-start="67.6" data-duration="2.77" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s3e" src="assets/vo/s3e.wav" data-start="73.0" data-duration="2.23" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s4a" src="assets/vo/s4a.wav" data-start="86.5" data-duration="1.85" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s4b" src="assets/vo/s4b.wav" data-start="93.8" data-duration="12.5" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s5" src="assets/vo/s5.wav" data-start="123.0" data-duration="7.5" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s6a" src="assets/vo/s6a.wav" data-start="141.0" data-duration="2.15" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s6b" src="assets/vo/s6b.wav" data-start="144.6" data-duration="7.98" data-track-index="2" data-volume="1"></audio>
-      <audio id="vo-s7" src="assets/vo/s7.wav" data-start="160.5" data-duration="17.9" data-track-index="2" data-volume="1"></audio>
-      <div id="labels" class="clip" data-start="0" data-duration="180" data-track-index="3"></div>
-      <div id="prompter" class="clip" data-start="0" data-duration="180" data-track-index="1" data-layout-allow-overflow="true">
+      <audio id="vo-s2" src="assets/vo/s2.wav" data-start="15.7" data-duration="22.5" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s3a" src="assets/vo/s3a.wav" data-start="39.2" data-duration="4.35" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s3b" src="assets/vo/s3b.wav" data-start="45.4" data-duration="3.3" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s3c" src="assets/vo/s3c.wav" data-start="48.7" data-duration="3.3" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s3d" src="assets/vo/s3d.wav" data-start="52.6" data-duration="2.77" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s3e" src="assets/vo/s3e.wav" data-start="58.0" data-duration="2.23" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s4a" src="assets/vo/s4a.wav" data-start="61.0" data-duration="1.85" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s4b" src="assets/vo/s4b.wav" data-start="65.8" data-duration="12.5" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s5" src="assets/vo/s5.wav" data-start="80.4" data-duration="7.5" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s6a" src="assets/vo/s6a.wav" data-start="89.8" data-duration="2.15" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s6b" src="assets/vo/s6b.wav" data-start="93.4" data-duration="7.98" data-track-index="2" data-volume="1"></audio>
+      <audio id="vo-s7" src="assets/vo/s7.wav" data-start="102.6" data-duration="17.9" data-track-index="2" data-volume="1"></audio>
+      <div id="labels" class="clip" data-start="0" data-duration="122.1" data-track-index="3"></div>
+      <div id="prompter" class="clip" data-start="0" data-duration="122.1" data-track-index="1" data-layout-allow-overflow="true">
         <div id="pr-head"><span id="pr-dot"></span></div>
       </div>
     </div>
@@ -96,8 +104,8 @@
         [93.5, "De app wordt rustiger."],
         [96.5, "Geen leningen of beleggingen meer, enkel steun:"],
         [101.0, "hoelang zijn buffer volstaat en wat hij nu moet doen."],
-        [107.0, "Producten verschijnen enkel als ze passen bij je situatie,"],
-        [112.0, "niet als een lijst om te verkopen."],
+        [102.5, "Producten verschijnen enkel als ze passen bij je situatie,"],
+        [105.0, "niet als een lijst om te verkopen."],
         [121.0, "En het werkt ook voor dromen."],
         [124.5, "Lotte wil naar Japan."],
         [128.0, "De copilot bouwt meteen een reisplanner"],
@@ -113,7 +121,16 @@
         [174.0, "KBC Adapt: van één dashboard voor iedereen,"],
         [176.8, "naar een bank die meebeweegt met jouw leven."],
       ];
-      const END = 180;
+      // Tight edit: kept ranges of the source recording (seconds). Everything above is authored in source time.
+      const SEG = [[0, 14.8],[19.6, 43.6],[50.6, 55.6],[56.6, 65.0],[67.2, 75.6],[88.6, 106.8],[121.4, 132.0],[140.6, 153.4],[160.1, 180.0]];
+      const toOut = (t) => {
+        let o = 0;
+        for (const [a, b] of SEG) { if (t < a) return o; if (t < b) return o + t - a; o += b - a; }
+        return o;
+      };
+      const END = toOut(1e9);
+      SCENES.forEach((sc) => (sc[0] = toOut(sc[0])));
+      CUES.forEach((c) => (c[0] = toOut(c[0] === 86.5 ? 89.0 : c[0])));
       // A line stays up until the next one starts, but at most this long; after that the band shows "wacht…".
       const HOLD_MAX = 6;
 
@@ -183,8 +200,9 @@
       const PUNCH = [
         { at: 67.3, end: 74.0, origin: "1651px 640px", scale: 1.32 }, // new "Nieuw" signal in the why-panel
         { at: 94.0, end: 104.5, origin: "900px 520px", scale: 1.26 }, // Marc's calm crisis screen
-        { at: 127.5, end: 137.5, origin: "900px 470px", scale: 1.26 }, // Japan travel planner
+        { at: 127.5, end: 131.8, origin: "900px 470px", scale: 1.26 }, // Japan travel planner
       ];
+      PUNCH.forEach((p) => { p.at = toOut(p.at); p.end = toOut(p.end); });
       tl.set("#footage-wrap", { scale: 1, transformOrigin: "50% 50%" }, 0);
       PUNCH.forEach((p) => {
         tl.set("#footage-wrap", { transformOrigin: p.origin }, p.at);
