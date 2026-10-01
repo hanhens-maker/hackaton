@@ -37,6 +37,11 @@
       .pr-nxt b { font-weight: 600; color: var(--kbc); margin-right: 10px; }
       .pr-bar { position: absolute; left: 0; bottom: 0; height: 8px; width: 100%; background: var(--kbc); transform-origin: 0 50%; }
       .pr-wait { color: var(--muted); font-weight: 600; }
+
+      /* Subtle scene label in the empty part of the persona column */
+      #labels { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+      .scene-label { position: absolute; left: 62px; top: 760px; width: 330px; font-size: 19px; font-weight: 600; color: #8a94a6; letter-spacing: 0.01em; }
+      .scene-label small { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--kbc); margin-bottom: 6px; }
     </style>
   </head>
   <body>
@@ -58,6 +63,7 @@
       <audio id="vo-s6a" src="assets/vo/s6a.wav" data-start="141.0" data-duration="2.15" data-track-index="2" data-volume="1"></audio>
       <audio id="vo-s6b" src="assets/vo/s6b.wav" data-start="144.6" data-duration="7.98" data-track-index="2" data-volume="1"></audio>
       <audio id="vo-s7" src="assets/vo/s7.wav" data-start="160.5" data-duration="17.9" data-track-index="2" data-volume="1"></audio>
+      <div id="labels" class="clip" data-start="0" data-duration="180" data-track-index="3"></div>
       <div id="prompter" class="clip" data-start="0" data-duration="180" data-track-index="1" data-layout-allow-overflow="true">
         <div id="pr-head"><span id="pr-dot"></span></div>
       </div>
@@ -162,6 +168,16 @@
       const first = el("div", "pr-cur pr-wait", "Klaar… begin te spreken", prompter);
       first.id = "pr-first";
       tl.fromTo(first, { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.1 }, CUES[0][0] - 0.1);
+
+      // Subtle scene labels: fade in at each scene start, gone after a few seconds.
+      const labels = document.getElementById("labels");
+      SCENES.forEach(([start, label], i) => {
+        const [num, name] = label.split(" · ");
+        const e = el("div", "scene-label", "<small>Scène " + num + " / " + SCENES.length + "</small>" + name, labels);
+        e.id = "scene-label-" + i;
+        tl.fromTo(e, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" }, start + 0.3);
+        tl.to(e, { autoAlpha: 0, duration: 0.5, ease: "power2.in" }, start + 3.6);
+      });
 
       // Punch-ins on the key moments (footage wrapper only; the timed <video> is never transformed).
       const PUNCH = [
